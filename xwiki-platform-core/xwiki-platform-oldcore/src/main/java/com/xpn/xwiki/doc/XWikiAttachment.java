@@ -59,7 +59,6 @@ import org.xwiki.model.reference.EntityReference;
 import org.xwiki.model.reference.EntityReferenceResolver;
 import org.xwiki.model.reference.EntityReferenceSerializer;
 import org.xwiki.model.reference.WikiReference;
-import org.xwiki.stability.Unstable;
 import org.xwiki.text.XWikiToStringBuilder;
 import org.xwiki.tika.internal.TikaUtils;
 
@@ -228,7 +227,6 @@ public class XWikiAttachment implements Cloneable
      * @throws IOException in case of error when writing the attachments content
      * @since 14.2RC1
      */
-    @Unstable
     public XWikiAttachment clone(String name, XWikiContext context)
         throws XWikiException, IOException
     {
@@ -252,7 +250,7 @@ public class XWikiAttachment implements Cloneable
     {
         long longSize = getLongSize();
 
-        return longSize > (long) Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) longSize;
+        return longSize > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) longSize;
     }
 
     /**
@@ -316,7 +314,7 @@ public class XWikiAttachment implements Cloneable
     {
         long longSize = getContentLongSize(context);
 
-        return longSize > (long) Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) longSize;
+        return longSize > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) longSize;
     }
 
     /**
