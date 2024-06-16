@@ -50,6 +50,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.Vector;
@@ -152,11 +153,7 @@ import org.xwiki.refactoring.batch.BatchOperationExecutor;
 import org.xwiki.refactoring.internal.ReferenceUpdater;
 import org.xwiki.rendering.async.AsyncContext;
 import org.xwiki.rendering.block.Block;
-import org.xwiki.rendering.block.Block.Axes;
-import org.xwiki.rendering.block.MetaDataBlock;
-import org.xwiki.rendering.block.match.MetadataBlockMatcher;
 import org.xwiki.rendering.internal.transformation.MutableRenderingContext;
-import org.xwiki.rendering.listener.MetaData;
 import org.xwiki.rendering.parser.ParseException;
 import org.xwiki.rendering.syntax.Syntax;
 import org.xwiki.rendering.syntax.SyntaxContent;
@@ -1028,7 +1025,6 @@ public class XWiki implements EventListener
      * @return {@code true} if the wiki has been initialized and the initialization is finished.
      * @since 14.4RC1
      */
-    @Unstable
     public boolean isWikiInitialized(String wikiId)
     {
         Job wikiInitializerJob = getWikiInitializerJob(wikiId);
@@ -3942,7 +3938,7 @@ public class XWiki implements EventListener
                 }
             }
 
-            if ((!password.equals(password2))) {
+            if (!password.equals(password2)) {
                 // TODO: throw wrong password exception
                 return -2;
             }
@@ -5695,8 +5691,7 @@ public class XWiki implements EventListener
                 context.getDoc().getDocumentReference().getName());
         } else {
             ResourceReference resourceReference = getResourceReferenceManager().getResourceReference();
-            if (resourceReference instanceof EntityResourceReference) {
-                EntityResourceReference entityResource = (EntityResourceReference) resourceReference;
+            if (resourceReference instanceof EntityResourceReference entityResource) {
                 String action = entityResource.getAction().getActionName();
                 if ((request.getParameter("topic") != null) && (action.equals("edit") || action.equals("inline"))) {
                     reference = getCurrentMixedDocumentReferenceResolver().resolve(request.getParameter("topic"));
@@ -7382,36 +7377,6 @@ public class XWiki implements EventListener
         return doc.validate(context);
     }
 
-    public String addTooltip(String html, String message, String params, XWikiContext context)
-    {
-        StringBuilder buffer = new StringBuilder();
-        buffer.append("<span class=\"tooltip_span\" onmouseover=\"");
-        buffer.append(params);
-        buffer.append("; return escape('");
-        buffer.append(message.replaceAll("'", "\\'"));
-        buffer.append("');\">");
-        buffer.append(html);
-        buffer.append("</span>");
-
-        return buffer.toString();
-    }
-
-    public String addTooltipJS(XWikiContext context)
-    {
-        StringBuilder buffer = new StringBuilder();
-        buffer.append("<script src=\"");
-        buffer.append(getSkinFile("ajax/wzToolTip.js", context));
-        buffer.append("\"></script>");
-        // buffer.append("<div id=\"dhtmltooltip\"></div>");
-
-        return buffer.toString();
-    }
-
-    public String addTooltip(String html, String message, XWikiContext context)
-    {
-        return addTooltip(html, message, "this.WIDTH='300'", context);
-    }
-
     public String addMandatory(XWikiContext context)
     {
         String star =
@@ -7832,11 +7797,10 @@ public class XWiki implements EventListener
             Block curentBlock = getRenderingContext().getCurrentBlock();
 
             if (curentBlock != null) {
-                MetaDataBlock metaDataBlock =
-                    curentBlock.getFirstBlock(new MetadataBlockMatcher(MetaData.SYNTAX), Axes.ANCESTOR_OR_SELF);
+                Optional<Syntax> syntaxMetadata = curentBlock.getSyntaxMetadata();
 
-                if (metaDataBlock != null) {
-                    return (Syntax) metaDataBlock.getMetaData().getMetaData(MetaData.SYNTAX);
+                if (syntaxMetadata.isPresent()) {
+                    return syntaxMetadata.get();
                 }
             }
         }
@@ -7880,8 +7844,8 @@ public class XWiki implements EventListener
 
             XWikiDocument doc = (XWikiDocument) source;
 
-            if (event instanceof XObjectPropertyEvent) {
-                EntityReference reference = ((XObjectPropertyEvent) event).getReference();
+            if (event instanceof XObjectPropertyEvent xObjectPropertyEvent) {
+                EntityReference reference = xObjectPropertyEvent.getReference();
                 String modifiedProperty = reference.getName();
                 if ("backlinks".equals(modifiedProperty)) {
                     this.hasBacklinks = doc.getXObject((ObjectReference) reference.getParent()).getIntValue("backlinks",
@@ -7909,8 +7873,8 @@ public class XWiki implements EventListener
             // If the class does not have the same reference anymore it means it's coming from a different classloader
             // which generally imply that it's coming from an extension which has been reloaded or upgraded
             // Both still need to have the same class name as otherwise it means the current class did not had anything
-            // to with with the standard configuration (some authenticators register themself)
-            if (this.authService.getClass() != authClass
+            // to do with the standard configuration (some authenticators registering themself)
+            if (authClass != null && this.authService.getClass() != authClass
                 && this.authService.getClass().getName().equals(authClass.getName())) {
                 setAuthService(authClass);
             }

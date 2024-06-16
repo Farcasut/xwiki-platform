@@ -19,9 +19,9 @@
  */
 define('xwiki-realtime-typingTests', function() {
   'use strict';
-  var setRandomizedInterval = function(func, target, range) {
-    var timeout;
-    var again = function() {
+  function setRandomizedInterval(func, target, range) {
+    let timeout;
+    const again = function() {
       timeout = setTimeout(function() {
         again();
         func();
@@ -33,44 +33,41 @@ define('xwiki-realtime-typingTests', function() {
         clearTimeout(timeout);
       }
     };
-  };
+  }
 
-  var testInput = function(rootElement, textNode, offset, callback) {
-    var i = 0,
-      j = offset,
-      textInput = " The quick red fox jumps over the lazy brown dog.",
-      errors = 0,
-      maxErrors = 15,
-      interval;
-    var cancel = function() {
-      interval.cancel();
-    };
+  function testInput(getSelection, callback) {
+    let i = 0, textInput = " The quick red fox jumps over the lazy brown dog.";
 
-    interval = setRandomizedInterval(function() {
-      callback();
-      try {
-        // "Type" the next character from the text input inside the given text node.
-        textNode.insertData(Math.min(j, textNode.length), textInput.charAt(i));
-      } catch (error) {
-        errors++;
-        if (errors >= maxErrors) {
-          console.log('Max error number exceeded.');
-          cancel();
+    let interval = setRandomizedInterval(() => {
+      const selection = getSelection();
+      if (selection?.rangeCount) {
+        const range = selection.getRangeAt(0);
+        if (range.collapsed && range.startContainer.nodeType === Node.TEXT_NODE) {
+          // "Type" the next character from the input string.
+          const textNode = range.startContainer;
+          textNode.insertData(range.startOffset, textInput.charAt(i));
+
+          // Type again the text input when we finish it.
+          i = (i + 1) % textInput.length;
+
+          // Update the caret position.
+          range.setStart(textNode, range.startOffset + 1);
+          range.collapse();
+          selection.removeAllRanges();
+          selection.addRange(range);
+
+          // Notify about the change.
+          callback();
         }
-
-        console.error(error);
-        // Continue typing in a new text node.
-        textNode = document.createTextNode('');
-        rootElement.appendChild(textNode);
-        j = -1;
       }
-      // Type again the text input when we finish it.
-      i = (i + 1) % textInput.length;
-      j++;
     }, 200, 50);
 
-    return {cancel};
-  };
+    return {
+      cancel: () => {
+        interval.cancel();
+      }
+    };
+  }
 
   return {
     setRandomizedInterval,
